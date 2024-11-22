@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+       xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+       xmlns:http="http://www.mulesoft.org/schema/mule/http"
+       xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	
+	<error-handler name="global-error-handler" doc:id="a62ab4dc-a879-41f1-89cd-55f3cfb42ecb" >
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="8df713b2-c60a-40db-912d-d24a92ee1639" type="CONNECTIVITY" >
+			<set-variable value="504" doc:name="Gateway Timeout" doc:id="2cf90d25-fd41-4b08-9f1b-5e8e8b14a79e" variableName="httpStatus" />
+			<set-variable value='#["CONNECTIVITY"]' doc:name="Category" doc:id="24361c1c-342c-4724-be98-91458b158d5f" variableName="category"/>
+			<set-variable value='#["Error"]' doc:name="Severity" doc:id="a8cd7aee-5408-402f-aacc-2129dee46414" variableName="severity"/>
+			<flow-ref doc:name="handle-error" doc:id="97d7db11-ec59-4c5f-affb-f1eddf0f71af" name="handle-error" />
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="27622e0c-4783-4c20-813a-12ee46bef8fc" type="SECURITY" >
+			<set-variable value='#["SECURITY"]' doc:name="Category" doc:id="b2033f2f-d480-45ec-aeeb-99d81c87713f" variableName="category" />
+			<set-variable value='#["Error"]' doc:name="Severity" doc:id="02ccd1c1-16a0-4b45-b534-1002a61166d1" variableName="severity" />
+			<choice doc:name="Choice" doc:id="6ba73fc2-ae54-4981-a3f1-f50b48f1a922" >
+				<when expression="#[error.errorMessage.attributes.statusCode == 401 or error.errorType.identifier == 'UNAUTHORIZED']" >
+					<set-variable value="401" doc:name="Unauthorized" doc:id="cff8e724-557a-40a2-8259-60d54d9c89e1" variableName="httpStatus" />
+				</when>
+				<when expression="#[error.errorMessage.attributes.statusCode == 403 or error.errorType.identifier == 'FORBIDDEN']">
+					<set-variable value="403" doc:name="Forbidden" doc:id="b7399d27-55de-4ddb-986f-d850fd871b12" variableName="httpStatus" />
+				</when>
+				<otherwise >
+					<set-variable value="#[error.errorMessage.attributes.statusCode]" doc:name="httpStatus" doc:id="d1d6399d-b205-42f7-b5ce-b39b6a3971a2" variableName="httpStatus"/>
+				</otherwise>
+			</choice>
+			<flow-ref doc:name="handle-error" doc:id="8a51eb86-caca-4ccd-aabc-2b3409cfbdbf" name="handle-error" />
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="29cc32f8-cdd7-4b52-bd85-a5637cc47ecd" type="ANY" >
+			<set-variable value='#["DATA"]' doc:name="Category" doc:id="de281dac-0b40-41d1-8a71-700e98e47542" variableName="category" />
+			<set-variable value='#["Error"]' doc:name="Severity" doc:id="d541d618-148a-42d9-90a2-98ab94f307e1" variableName="severity" />
+			<choice doc:name="Choice" doc:id="b1327426-0c54-4ec1-8f5a-d77c1c240c70">
+						<when expression="#[error.errorMessage.attributes.statusCode == 400 or error.errorType.identifier == 'BAD_REQUEST']">
+							<set-variable value="400" doc:name="Bad Request" doc:id="65b185a6-2cbf-440f-b8eb-60d8430874ca" variableName="httpStatus" />
+						</when>
+						<when expression="#[error.errorMessage.attributes.statusCode == 404 or error.errorType.identifier == 'NOT_FOUND']">
+							<set-variable value="404" doc:name="Not Found" doc:id="3da7d9a2-3f58-45c5-b492-28d87784e165" variableName="httpStatus" />
+						</when>
+						<when expression="#[error.errorMessage.attributes.statusCode == 405 or error.errorType.identifier == 'METHOD_NOT_ALLOWED']">
+							<set-variable value="405" doc:name="Method Not Allowed" doc:id="48840ea7-39ee-4437-b7d7-aa0520183ea5" variableName="httpStatus" />
+						</when>
+						<when expression="#[error.errorMessage.attributes.statusCode == 406 or error.errorType.identifier == 'NOT_ACCEPTABLE']">
+							<set-variable value="406" doc:name="Not Acceptable" doc:id="46384956-fe0f-4ac3-9622-aac38af58a36" variableName="httpStatus" />
+					<set-variable value='#["FUNCTIONAL"]' doc:name="Category" doc:id="b4dcd1a9-6796-4d23-b1ea-d114489c74eb" variableName="category" />
+						</when>
+						<when expression="#[error.errorMessage.attributes.statusCode == 415 or error.errorType.identifier == 'UNSUPPORTED_MEDIA_TYPE']">
+							<set-variable value="415" doc:name=" Unsupported Media Type" doc:id="71eeb332-4c99-4218-bfe0-0c7ef53a3e94" variableName="httpStatus" />
+						</when>
+						<when expression="#[error.errorMessage.attributes.statusCode == 501 or error.errorType.identifier == 'NOT_IMPLEMENTED']">
+							<set-variable value="501" doc:name="Not Implemented" doc:id="5ec89150-208f-430d-9157-0b5856636109" variableName="httpStatus" />
+					<set-variable value='#["SYSTEM"]' doc:name="Category" doc:id="799c1ade-b5b0-493b-8a78-85d831952dd0" variableName="category" />
+						</when>
+						<when expression="#[error.errorMessage.attributes.statusCode == 429 or error.errorType.identifier == 'TOO_MANY_REQUESTS']">
+							<set-variable value="429" doc:name="Too Many Requests" doc:id="676eea24-41c6-422d-a7dc-1790a215dee5" variableName="httpStatus" />
+					<set-variable value='#["OTHERS"]' doc:name="Category" doc:id="e62e5f9c-6dbc-416f-bb97-c392ef1296e8" variableName="category" />
+						</when>
+						<when expression="#[error.errorMessage.attributes.statusCode == 423 or error.errorType.identifier == 'LOCKED']">
+							<set-variable value="423" doc:name="Locked" doc:id="8c8ec1e4-7574-4cd8-b7bd-82772a40fcc5" variableName="httpStatus" />
+					<set-variable value='#["OTHERS"]' doc:name="Category" doc:id="3cfbd311-55c1-4833-8929-f550f07964ce" variableName="category" />
+						</when>
+						<when expression="#[error.errorMessage.attributes.statusCode == 206 or error.errorType.identifier == 'PARTIAL_CONTENT']">
+							<set-variable value="206" doc:name="Partial Content" doc:id="f6554afb-dd4a-4fde-ab62-54222abdbe97" variableName="httpStatus" />
+					<set-variable value='#["OTHERS"]' doc:name="Category" doc:id="da7afe07-a915-4143-a05c-4acfa367dd81" variableName="category" />
+					<set-variable value='#["Info"]' doc:name="Severity" doc:id="a3cf9c43-94a1-42dd-9273-920e475dea1a" variableName="severity" />
+						</when>
+				<otherwise >
+					<set-variable value="#[if(error.errorMessage.attributes.statusCode != null) error.errorMessage.attributes.statusCode else 500]" doc:name="Internal Server Error" doc:id="4230f551-0b13-4043-94a7-19c5989095a7" variableName="httpStatus" />
+					<set-variable value='#["SYSTEM"]' doc:name="Category" doc:id="ea68b5a8-f1d3-4ef1-80e0-6c48b5defbe4" variableName="category" />
+				</otherwise>
+					</choice>
+			<flow-ref doc:name="handle-error" doc:id="5e377ff2-d5e3-45f0-b5b4-84552e588648" name="handle-error" />
+		</on-error-propagate>
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="35b04694-a8e4-4787-afc2-cb0dc133029a" type="ANY">
+			<flow-ref doc:name="handle-error" doc:id="e12cacf5-59a8-42ea-a72b-ab1845787242" name="handle-error" />
+		</on-error-continue>
+	</error-handler>
+	<sub-flow name="handle-error" doc:id="d5ea2c25-caa7-4dca-b674-14d141507916">
+		<ee:transform doc:name="Transform Message" doc:id="b5d35ef7-04ce-4c71-96a1-4233543e318a" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="errorPayload" ><![CDATA[%dw 2.0
+output application/json
+---
+error.errorMessage.payload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="70486988-9bb2-4ba2-96b1-a33a6678a477" message="Error in Auto Scaling API: Error Description: #[error.detailedDescription] Error Payload is: #[vars.errorPayload]"/>
+</sub-flow>
+</mule>

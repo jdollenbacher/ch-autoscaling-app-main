@@ -1,0 +1,76 @@
+
+# Cloudhub HTTP listener and requester config
+http:
+ private:  
+  port: "8091"
+ request:
+  host: "anypoint.mulesoft.com"
+  port: "443"
+  maxConnections: "-1"
+  responsebuffersize: "1024"
+  connection: "30000"
+  timeouts: ""
+  idle: "3000"
+  response: "30000"
+  applications:
+   path: "/cloudhub/api/v2/applications/"
+  alerts:  
+   path: "/cloudhub/api/v2/alerts/" 
+
+# Cloudhub Runtime Manager Alert IDs
+alerts:
+  id: ""
+
+https:
+ private:
+  port: "8092"
+
+# Global TLS Config
+tls:
+ config:
+  truststore:
+   path: ""
+  keystore:
+   path: ""
+   alias: "<alias-name>"
+   
+# IMAP Config
+email:
+ host: ""
+ port: ""
+ username: ""
+ password: ""
+ folder: ""
+ matcher:
+  receivedSince: ""
+  receivedFrom: ""
+  subject: ""
+
+# App names and their configuration for auto scaling; provide comma seperated app names
+auto-scaling:
+ apps: ""
+ alert-time-interval: ""
+
+# Include app names and underlying configuration to enable auto scaling
+manish-demo-app:
+ min-worker-count: ""
+ cpu:
+  utilization: 
+   scale-down-count: ""
+   scale-up-count: ""
+
+ memory:
+  utilization: 
+   scale-down-count: ""
+   scale-up-count: ""
+
+# CH configuration 
+cloudhub:
+ username: ""
+ password: ""
+ envId: ""
+ 
+# Object Store configuration
+os:
+  ttl: "0"
+  expirationInterval: "1"

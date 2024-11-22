@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd">
+	<sub-flow name="ch-auto-scaling-flow" doc:id="4a170e4a-05cd-424d-aa83-c5c02370c9be" >
+		<logger level="INFO" doc:name="Logger" doc:id="f3ca48cd-4cba-49cb-a529-adf172363b92" message="Retreiving #[vars.appName] settings from CH"/>
+		<http:request method="GET" doc:name="Get application settings" doc:id="b4ce99f8-5ff7-42fe-971f-f48a135295cf" config-ref="HTTP_Request_configuration" path="#[p('http.request.applications.path') ++ vars.appName]" target="workerConf">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"X-ANYPNT-ENV-ID" : p('cloudhub.envId')
+}]]]></http:headers>
+		</http:request>
+		<logger level="INFO" doc:name="Logger" doc:id="780747ed-2311-43de-b54e-448c23d50128" message="Current application settings for #[vars.appName] are: #[vars.workerConf]"/>
+		<set-variable value='#[vars.appName ++ ".min-worker-count"]' doc:name="Set Variable" doc:id="f4b13324-368d-4838-ab37-b2e39be5e6cd" variableName="minWorker" />
+		<choice doc:name="Choice" doc:id="c285482c-cae5-4ef2-9e28-8f608e60607a" >
+			<when expression="#[vars.scaleUp == 'true']" >
+				<ee:transform doc:name="Transform Message" doc:id="ea67ce13-8e4c-4032-812f-8f196eafe125" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{"workers": {
+        
+        "amount": vars.workerConf.workers.amount + 1
+    }}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<flow-ref doc:name="Flow Reference" doc:id="42661475-5050-47e1-82ff-e0d0ccec10e8" name="ch-request-sub_flow" />
+			</when>
+			<when expression="#[vars.scaleDown == 'true' and vars.workerConf.workers.amount &gt; p(vars.minWorker)]" >
+				<ee:transform doc:name="Transform Message" doc:id="034039b5-ded4-41e8-9248-d0c10815d105" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{"workers": {
+        
+        ("amount": vars.workerConf.workers.amount - 1) if (vars.workerConf.workers.amount > p(vars.minWorker))
+    }}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<flow-ref doc:name="Flow Reference" doc:id="bf2042c2-eae4-4771-89a9-419dd5b48b9a" name="ch-request-sub_flow" />
+			</when>
+			<when expression="#[vars.scaleDown == 'true' and vars.workerConf.workers.amount &lt;= p(vars.minWorker)]">
+				<logger level="INFO" doc:name="Logger" doc:id="d4d0d9ad-8080-4aa2-998f-0a0fb5d95980" message="Worker count for #[vars.appName] cannot be reduced further. The minimum worker count value set is #[p(vars.minWorker)]"/>
+			</when>
+		</choice>
+	</sub-flow>
+	<sub-flow name="ch-request-sub_flow" doc:id="d8ae34aa-cb69-4867-82e8-85ac69453a5e" >
+		<logger level="INFO" doc:name="Logger" doc:id="ca0cc733-e8e4-4502-9a0c-31d0add97069" message="Calling Cloudhub API for updating settings for application: #[vars.appName] with #[payload]"/>
+		<http:request method="PUT" doc:name="Calling CH API" doc:id="525d8a7c-1f55-4e02-8c11-f506482fc290" config-ref="HTTP_Request_configuration" path="#[p('http.request.applications.path') ++ vars.appName]">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"X-ANYPNT-ENV-ID" : p('cloudhub.envId'),
+	"Content-Type" : "application/json"
+}]]]></http:headers>
+		</http:request>
+		<logger level="INFO" doc:name="Logger" doc:id="8e0b3920-36a8-4f0e-9d94-b89e807ba41c" message=" Worker configuration for #[vars.appName] has been updated. Current Settings are: #[payload]"/>
+	</sub-flow>
+</mule>

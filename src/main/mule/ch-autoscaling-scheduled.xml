@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="auto-scaling:scheduled-flow" doc:id="ccae470c-65b0-4c7c-b8c9-2e2afe1a3441" >
+		<scheduler doc:name="Scheduler" doc:id="f693560d-7bee-4d73-aaed-8671e2acc7c3" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="${auto-scaling.alert-time-interval}" timeUnit="MINUTES"/>
+			</scheduling-strategy>
+		</scheduler>
+		<logger level="INFO" doc:name="Logger" doc:id="23001efd-c714-4e1f-80d9-da05f3d692e8" message="Starting Auto Scaling scheduler flow"/>
+		<parallel-foreach doc:name="Parallel For Each" doc:id="7d19be01-b981-4f97-a936-0d683432760e" collection="#[p('alerts.id') splitBy(/,/)]" maxConcurrency="4">
+			<http:request method="GET" doc:name="Request Alert Details" doc:id="31d9074f-1b96-4b72-8e8c-5ad7fce835b0" config-ref="HTTP_Request_configuration" path="#[p('http.request.alerts.path') ++ payload ++ '/history']" target="alertPayload" targetValue="#[output application/json skipNullOn=&quot;everywhere&quot;
+---
+
+(payload.data filter ((p('auto-scaling.apps') contains ($.context.resource)) and (now() - (&quot;PT$(p('auto-scaling.alert-time-interval'))M&quot; as Period) &lt;= ($.triggeredAt/1000) as DateTime))) distinctBy ((item, index) -&gt; item.context.resource)]">
+				<http:headers ><![CDATA[#[output application/java
+---
+{
+	"X-ANYPNT-ENV-ID" : p('cloudhub.envId')
+}]]]></http:headers>
+			</http:request>
+			<choice doc:name="Choice" doc:id="19ce8b3a-03c2-4ec6-980b-60901ccfd4e7" >
+				<when expression="#[sizeOf(vars.alertPayload) &gt; 0]" >
+					<logger level="INFO" doc:name="Logger" doc:id="37b4a461-e21f-4c0d-8a1b-b029ef995551" message='Received alert notification for #[vars.alertPayload.context."type"[0]] #[vars.alertPayload.context."operator"[0]]' />
+					<!-- <set-variable value="#[output application/json skipNullOn=&quot;everywhere&quot;
+-&#45;&#45;
+
+vars.alertPayload.data filter ((p('auto-scaling.apps') contains ($.context.resource)) and (now() - (&quot;PT$(p('auto-scaling.alert-time-interval'))M&quot; as Period) &lt;= ($.triggeredAt/1000) as DateTime))]" doc:name="Set Variable" doc:id="54afc5fb-f829-4a31-99b2-3b34dc2f4e3f" variableName="alertDetails" />
+ -->					<parallel-foreach doc:name="Parallel For Each" doc:id="cd33670f-2348-4dd1-898f-c317c4632d35" collection="vars.alertPayload">
+						<ee:transform doc:name="Transform Message" doc:id="5c2a2c29-d938-4294-8ffb-e6be1aa6523e">
+							<ee:message />
+							<ee:variables>
+								<ee:set-variable variableName="appName"><![CDATA[%dw 2.0
+output application/java
+---
+payload.context.resource]]></ee:set-variable>
+								<ee:set-variable variableName="kpiName"><![CDATA[%dw 2.0
+output application/java
+---
+payload.context."type"]]></ee:set-variable>
+								<ee:set-variable variableName="kpiValue"><![CDATA[%dw 2.0
+output application/java
+---
+payload.context.operator]]></ee:set-variable>
+							</ee:variables>
+						</ee:transform>
+						<choice doc:name="Choice" doc:id="5ebff74c-1d78-4552-a80a-07c0d00bce7e">
+							<when expression="#[vars.kpiName == 'memory']">
+								<flow-ref doc:name="Flow Reference" doc:id="0b179916-7d52-495a-822a-45026c7e5bbc" name="auto-scaling:implementation-memory-flow" />
+							</when>
+							<when expression="#[vars.kpiName == 'cpu']">
+								<flow-ref doc:name="Flow Reference" doc:id="ad8ffdc0-dffc-4ee0-9025-584edd23a019" name="auto-scaling:implementation-cpu-flow" />
+							</when>
+						</choice>
+					</parallel-foreach>
+				</when>
+				<otherwise >
+					<logger level="INFO" doc:name="Logger" doc:id="5164ab35-6e89-49d5-96cd-305c0aceb17a" message="No alerts found for #[payload] in last #[p('auto-scaling.alert-time-interval')] minutes"/>
+				</otherwise>
+			</choice>
+		</parallel-foreach>
+	</flow>
+</mule>

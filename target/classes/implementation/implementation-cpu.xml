@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd">
+	<sub-flow name="auto-scaling:implementation-cpu-flow" doc:id="f13d9e99-95b1-4197-a9b9-f15addf70e61" >
+		<choice doc:name="Choice" doc:id="4ee65ce9-8f14-442b-8212-8c7a312d807f" >
+			<when expression="#[vars.kpiValue == 'LESS_THAN']" >
+				<os:retrieve doc:name="Retrieve" doc:id="bfc7415f-563e-4bb0-b1e3-b9edf5b1a58e" key="#[vars.appName ++ '.cpu.utilization.scale-down-count']" objectStore="Object_store" target="scaleDownCount" >
+					<os:default-value ><![CDATA[1]]></os:default-value>
+				</os:retrieve>
+				<flow-ref doc:name="Flow Reference" doc:id="688ad460-b0ea-4278-8835-fa6306911abb" name="clear-os-scale-up-cpu"/>
+				<flow-ref doc:name="Flow Reference" doc:id="9b72892b-c84c-42d1-863e-5b317e1163e1" name="clear-os-scale-down-memory"/>
+				<flow-ref doc:name="Flow Reference" doc:id="8a6049ed-595a-4f3e-9f78-fb5c948b1b82" name="clear-os-scale-up-memory"/>
+				<choice doc:name="Choice" doc:id="12082ff0-3fdd-492b-8d6f-169e081da4c4" >
+					<when expression="#[vars.scaleDownCount as String == p(vars.appName ++ '.' ++ vars.kpiName ++ '.utilization.scale-down-count')]" >
+						<set-variable value="true" doc:name="Set Variable" doc:id="fe579168-9aa1-44cf-9c54-4c0c1e0d590a" variableName="scaleDown" />
+						<logger level="INFO" doc:name="Logger" doc:id="7badfee9-1203-4e69-82bf-c003982feb29" message="Scale Down: Auto scaling criteria matched for application: #[vars.appName]"/>
+						<flow-ref doc:name="Flow Reference" doc:id="a3a08323-49a3-4344-821d-fbebb48aa64d" name="ch-auto-scaling-flow"/>
+						<flow-ref doc:name="Flow Reference" doc:id="cecc8429-7354-42eb-adb0-06a1806c80ed" name="clear-os-scale-down-cpu" />
+					</when>
+					<otherwise >
+						<set-variable value="#[vars.scaleDownCount + 1]" doc:name="Set Variable" doc:id="6eeca11a-fdd4-4144-ad85-cede223b277f" variableName="scalingCount" />
+						<os:store doc:name="Store" doc:id="19906873-e7db-43b8-bd77-4ab9a0bb3d13" key="#[vars.appName ++ '.' ++ vars.kpiName ++ '.utilization.scale-down-count']" objectStore="Object_store" >
+							<os:value ><![CDATA[#[vars.scalingCount]]]></os:value>
+						</os:store>
+						<logger level="INFO" doc:name="Logger" doc:id="61241ebc-9250-479f-9986-e3172f1b3502" message="Scale Down: Scaling criteria did not match; current scaling count #[vars.scalingCount] is not greater than scaling count from config  #[p(vars.appName ++ '.' ++ vars.kpiName ++ '.utilization.scale-down-count')] "/>
+					</otherwise>
+				</choice>
+			</when>
+			<when expression="#[vars.kpiValue == 'GREATER_THAN']" >
+				<os:retrieve doc:name="Retrieve" doc:id="63e73d97-b156-4341-90b1-adad4ec463ae" key="#[vars.appName ++ '.cpu.utilization.scale-up-count']" objectStore="Object_store" target="scaleUpCount" >
+					<os:default-value ><![CDATA[1]]></os:default-value>
+				</os:retrieve>
+				<flow-ref doc:name="Flow Reference" doc:id="f9ad2de8-4bd2-4dac-baff-0307e8c28f8e" name="clear-os-scale-up-memory"/>
+				<flow-ref doc:name="Flow Reference" doc:id="8be5af6a-4fb7-49ed-b827-394b4f0c2086" name="clear-os-scale-down-memory"/>
+				<flow-ref doc:name="Flow Reference" doc:id="c98ff5f1-a34a-4274-85af-04ca666ffe94" name="clear-os-scale-down-cpu"/>
+				<choice doc:name="Choice" doc:id="9e3f8c29-5704-40cf-a045-403501321a70" >
+					<when expression="#[vars.scaleUpCount as String == p(vars.appName ++ '.' ++ vars.kpiName ++ '.utilization.scale-up-count')]" >
+						<set-variable value="true" doc:name="Set Variable" doc:id="0e446751-7f2f-4824-9e5b-61de5ef0f4e3" variableName="scaleUp" />
+						<logger level="INFO" doc:name="Logger" doc:id="44def899-4443-444a-8bbe-d1bfc1402a32" message="Scale Up: Auto scaling criteria matched for application: #[vars.appName]"/>
+						<flow-ref doc:name="Flow Reference" doc:id="f4fcc2bc-f4c2-48f1-baf5-c6e30688ba3d" name="ch-auto-scaling-flow"/>
+						<flow-ref doc:name="Flow Reference" doc:id="665110db-4e7d-43ac-b6d2-0bf526e0f7cd" name="clear-os-scale-up-cpu"/>
+					</when>
+					<otherwise >
+						<set-variable value="#[vars.scaleUpCount + 1]" doc:name="Set Variable" doc:id="20f48c6a-e619-44a5-b993-8ed622d2495d" variableName="scalingCount" />
+						<os:store doc:name="Store" doc:id="b4bb9fcd-da23-472e-9b67-736a95a692bb" key="#[vars.appName ++ '.' ++ vars.kpiName ++ '.utilization.scale-up-count']" objectStore="Object_store" >
+							<os:value ><![CDATA[#[vars.scalingCount]]]></os:value>
+						</os:store>
+						<logger level="INFO" doc:name="Logger" doc:id="e207577f-cb63-4f2c-9f29-d2bd96e74f96" message="Scale Up: Scaling criteria did not match; current scaling count #[vars.scalingCount] is not greater than scaling count from config #[p(vars.appName ++ '.' ++ vars.kpiName ++ '.utilization.scale-up-count')]"/>
+					</otherwise>
+				</choice>
+			</when>
+		</choice>
+	</sub-flow>
+</mule>

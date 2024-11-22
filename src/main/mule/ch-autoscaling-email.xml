@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<flow name="auto-scaling:email-flow" doc:id="18351123-d8d4-4ab4-9dc1-5d79a6f258ad" >
+		<email:listener-imap doc:name="On New Email - IMAP" doc:id="267fcc0e-f955-45ed-a115-eeb4f7ca98fe" config-ref="Email_IMAP" folder="${email.folder}">
+			<scheduling-strategy >
+				<fixed-frequency frequency="${auto-scaling.alert-time-interval}" timeUnit="MINUTES"/>
+			</scheduling-strategy>
+			<email:imap-matcher receivedSince="${email.matcher.receivedSince}" fromRegex="${email.matcher.receivedFrom}" seen="EXCLUDE" deleted="EXCLUDE"/>
+		</email:listener-imap>
+		<logger level="INFO" doc:name="Logger" doc:id="74769118-a80e-46a5-a8f0-416afdd887e6" message="Email flow started" />
+		
+		<ee:transform doc:name="Transform Message" doc:id="c6d5d12f-22d8-4bae-9409-d15a342b4865" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload.body]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="0bbf3bb2-f56f-4846-91c5-a450e04f7e07">
+						<ee:message>
+						</ee:message>
+						<ee:variables>
+							<ee:set-variable variableName="appName"><![CDATA[%dw 2.0
+output application/java
+import * from dw::core::Strings
+---
+
+substringBefore(substringAfter(payload,"application ")," is")]]></ee:set-variable>
+							<ee:set-variable variableName="kpiName"><![CDATA[%dw 2.0
+output application/java
+import * from dw::core::Strings
+---
+lower(substringBefore(substringAfter(payload,"condition '")," "))]]></ee:set-variable>
+									<ee:set-variable variableName="kpiValue"><![CDATA[%dw 2.0
+output application/java
+---
+if (payload contains("GREATER_THAN")) "GREATER_THAN" else "LESS_THAN"]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="ae6e0b35-d8e8-4e98-b693-1221b00b001e" message='Received alert notification for #[vars.kpiName] #[vars.kpiValue] Utilization: #[payload]' />
+		<choice doc:name="Choice" doc:id="2648a118-fa53-4cef-a306-24f1119c2725" >
+			<when expression="#[vars.kpiName == 'memory']">
+				<flow-ref doc:name="Flow Reference" doc:id="7ac047eb-e210-40a4-940c-ff1166e4e69d" name="auto-scaling:implementation-memory-flow" />
+			</when>
+			<when expression="#[vars.kpiName == 'cpu']">
+				<flow-ref doc:name="Flow Reference" doc:id="a36ac9c1-58c1-4c5e-8f96-f2c7ee34c7d4" name="auto-scaling:implementation-cpu-flow" />
+			</when>
+		</choice>
+	</flow>
+</mule>

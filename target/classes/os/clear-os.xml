@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<sub-flow name="clear-os-scale-down-memory" doc:id="055fb636-0732-4ed5-aeee-780a5daf1396" >
+		<os:contains doc:name="Contains" doc:id="7d4cae37-a2b8-4bbb-b465-4ea85e1e1da9" key="#[vars.appName ++ '.memory.utilization.scale-down-count']" objectStore="Object_store" target="keyPresent" />
+		<choice doc:name="Choice" doc:id="be67145a-2b77-4116-ba67-8dfebdfd95e9">
+					<when expression="#[vars.keyPresent]">
+						<os:remove doc:name="Remove" doc:id="4c871250-a5eb-4835-a765-0ddcb6e2435e" key="#[vars.appName ++ '.memory.utilization.scale-down-count']" objectStore="Object_store" />
+				<logger level="INFO" doc:name="Logger" doc:id="15ceb449-a28e-47b4-a385-4639d151ad04" message="Deleted #[vars.appName ++ '.memory.utilization.scale-down-count'] from OS"/>
+					</when>
+				</choice>
+	</sub-flow>
+	<sub-flow name="clear-os-scale-up-memory" doc:id="dc4706ea-e24d-44f5-9e76-0004cf475281" >
+		<os:contains doc:name="Contains" doc:id="4bcea8d2-8db4-44d8-87dc-6b3e3b07b44e" key="#[vars.appName ++ '.memory.utilization.scale-up-count']" objectStore="Object_store" target="keyPresent" />
+		<choice doc:name="Choice" doc:id="7cd58bc4-cea8-4795-8967-2f6e2b9a07e2" >
+			<when expression="#[vars.keyPresent]" >
+				<os:remove doc:name="Remove" doc:id="d691589b-dd7f-4870-bc62-4bf4fa498cf2" key="#[vars.appName ++ '.memory.utilization.scale-up-count']" objectStore="Object_store" />
+				<logger level="INFO" doc:name="Logger" doc:id="c6b951ae-1b93-4a44-ad7c-3efe20d59373" message="Deleted #[vars.appName ++ '.memory.utilization.scale-up-count'] from OS"/>
+			</when>
+		</choice>
+	</sub-flow>
+	<sub-flow name="clear-os-scale-up-cpu" doc:id="e561deb5-e813-45df-a06a-9f9981ef9cbe" >
+		<os:contains doc:name="Contains" doc:id="a8832fad-8a41-4bdc-8d27-c03fd183c087" key="#[vars.appName ++ '.cpu.utilization.scale-up-count']" objectStore="Object_store" target="keyPresent" />
+		<choice doc:name="Choice" doc:id="64fa78a1-853d-4902-a5d8-095c42c1becd" >
+			<when expression="#[vars.keyPresent]" >
+				<os:remove doc:name="Remove" doc:id="9b6e25a9-69dc-44d9-9e8f-aa3bfa25a2f4" key="#[vars.appName ++ '.cpu.utilization.scale-up-count']" objectStore="Object_store" />
+				<logger level="INFO" doc:name="Logger" doc:id="4b7bfc3f-a789-4ca7-94b4-e34e508690f2" message="Deleted #[vars.appName ++ '.cpu.utilization.scale-up-count'] from OS"/>
+			</when>
+		</choice>
+	</sub-flow>
+	<sub-flow name="clear-os-scale-down-cpu" doc:id="879e0990-e3e8-4dc7-aded-cf7e9353d39a" >
+		<os:contains doc:name="Contains" doc:id="93d707ff-cb44-4e17-96e5-ba6a40ceccaf" key="#[vars.appName ++ '.cpu.utilization.scale-down-count']" objectStore="Object_store" target="keyPresent" />
+		<choice doc:name="Choice" doc:id="01a10985-c9f8-4677-808c-5a7caf820cc4" >
+			<when expression="#[vars.keyPresent]" >
+				<os:remove doc:name="Remove" doc:id="a3c7e9f1-6ce3-42f1-9fe7-3f9337d3a1fd" key="#[vars.appName ++ '.cpu.utilization.scale-down-count']" objectStore="Object_store" />
+				<logger level="INFO" doc:name="Logger" doc:id="a3def99d-6ae4-4cb2-bdac-a342a802ad3c" message="Deleted #[vars.appName ++ '.cpu.utilization.scale-down-count'] from OS"/>
+			</when>
+		</choice>
+	</sub-flow>
+</mule>

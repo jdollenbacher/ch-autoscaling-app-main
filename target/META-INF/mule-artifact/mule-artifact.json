@@ -1,0 +1,45 @@
+{
+  "configs": [
+    "global.xml",
+    "ch-autoscaling-scheduled.xml",
+    "os/clear-os.xml",
+    "ch-autoscaling-email.xml",
+    "cloudhub/ch-api.xml",
+    "global-error-handler.xml",
+    "implementation/implementation-memory.xml",
+    "implementation/implementation-cpu.xml"
+  ],
+  "secureProperties": [
+    "anypoint.platform.client_id",
+    "anypoint.platform.client_secret",
+    "cloudhub.password",
+    "email.password"
+  ],
+  "redeploymentEnabled": true,
+  "name": "73b94a96-bf4b-48ae-8dd8-854e0302c9c7:wm-autoscaling-api:1.0.0",
+  "minMuleVersion": "4.2.2",
+  "requiredProduct": "MULE_EE",
+  "classLoaderModelLoaderDescriptor": {
+    "id": "mule",
+    "attributes": {
+      "exportedPackages": [],
+      "exportedResources": [
+        "log4j2.xml",
+        "configurations/config.yaml",
+        "global.xml",
+        "application-types.xml",
+        "ch-autoscaling-scheduled.xml",
+        "ch-autoscaling-email.xml",
+        "implementation/implementation-cpu.xml",
+        "implementation/implementation-memory.xml",
+        "cloudhub/ch-api.xml",
+        "os/clear-os.xml",
+        "global-error-handler.xml"
+      ]
+    }
+  },
+  "bundleDescriptorLoader": {
+    "id": "mule",
+    "attributes": {}
+  }
+}

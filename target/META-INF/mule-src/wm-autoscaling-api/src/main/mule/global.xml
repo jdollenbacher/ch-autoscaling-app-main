@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<configuration doc:name="Configuration" doc:id="92061d3c-cf53-4f9b-a4ba-baed461d8621" defaultErrorHandler-ref="global-error-handler" />
+	<configuration-properties doc:name="Configuration properties" doc:id="151d1723-4ece-4f1b-a64d-9361cde71b03" file="configurations/config.yaml" />
+	<http:listener-config name="HTTP-listener-config" doc:name="HTTP Listener config" doc:id="4e2a8cc7-1bd6-4bbf-95ab-b82e16f0b812" >
+		<http:listener-connection host="0.0.0.0" port="${http.private.port}" />
+	</http:listener-config>
+	<!-- apikit:config outboundHeadersMapName="outboundHeadersMapName" httpStatusVarName="httpStatus" doc:name="Router" doc:id="ac8d04dd-6a54-4279-af5d-dab59661a12e" name="router-config" /-->
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="14cda54f-5889-4098-b10b-048c7e43b0fb" >
+		<http:request-connection host="${http.request.host}" port="${http.request.port}" protocol="HTTPS">
+			<tls:context >
+				<tls:trust-store insecure="true" />
+			</tls:context>
+			<http:authentication >
+				<http:basic-authentication username="${cloudhub.username}" password="${cloudhub.password}" />
+			</http:authentication>
+		</http:request-connection>
+	</http:request-config>
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="1c92f28e-6e36-4673-8c54-20043753f6ce" />
+	<email:imap-config name="Email_IMAP" doc:name="Email IMAP" doc:id="60837cd8-c458-414b-9ade-1fc5242d886c" >
+		<email:imaps-connection host="${email.host}" port="${email.port}" user="${email.username}" password="${email.password}" >
+			<tls:context >
+				<tls:trust-store insecure="true" />
+			</tls:context>
+		</email:imaps-connection>
+	</email:imap-config>
+</mule>
